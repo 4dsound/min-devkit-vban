@@ -18,8 +18,8 @@ include_directories(
 
 
 set( SOURCE_FILES
+	${PROJECT_NAME}.h
 	${PROJECT_NAME}.cpp
-	
 )
 
 
