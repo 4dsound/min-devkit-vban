@@ -117,6 +117,4 @@ private:
 	std::vector<std::unique_ptr<inlet<>>> mInlets;
 };
 
-MIN_EXTERNAL(VbanSender);
-
 

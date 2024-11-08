@@ -168,3 +168,5 @@ void VbanSender::operator()(audio_bundle input, audio_bundle output)
 		sendPacket(input.frame_count());
 	mBundlesSent += 1;
 }
+
+MIN_EXTERNAL(VbanSender);
