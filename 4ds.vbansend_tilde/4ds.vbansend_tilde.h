@@ -2,6 +2,12 @@
 
 #include "c74_min.h"
 #include "vban.h"
+
+//#include <asio/ts/buffer.hpp>
+//#include <asio/ts/internet.hpp>
+//#include <asio/io_service.hpp>
+//#include <asio/system_error.hpp>
+
 #ifdef __APPLE__
 	#include <arpa/inet.h>
 	#include <sys/socket.h>
@@ -22,21 +28,27 @@ class VbanSender : public object<VbanSender>, public vector_operator<>
 public:
 	~VbanSender();
 	VbanSender(const atoms &args = {});
+
+	/**
+	 * Processed the audio input to audio output
+	 * @param input Multichannel input buffer
+	 * @param output Multichannel output buffer
+	 */
 	void operator()(audio_bundle input, audio_bundle output);
 
-	MIN_DESCRIPTION { "Send audio signal over vban" };
-	MIN_TAGS { "VBAN,Network,UDP" };
+	MIN_DESCRIPTION { "Send audio stream over vban. v0.01" };
+	MIN_TAGS { "VBAN, Network, UDP" };
 	MIN_AUTHOR { "4DSound" };
 
 	outlet<> output { this, "(signal) Output Pass thru", "signal" };
 
-	message<> active { this, "active", "Start or Stop the sender",
+	message<> active { this, "active", "Start or stop the sender",
 		MIN_FUNCTION{
 			if (args[0] == 1) {
-				startSocket();
+				start();
 			}
 			else if (args[0] == 0) {
-				stopSocket();
+				stop();
 			}
 			return {};
 		}
@@ -44,38 +56,42 @@ public:
 
 	message<> port { this, "port", "Set the port number",
 		MIN_FUNCTION{
-			cout << "SETTING PORT: " << args[0] << endl;
+			cout << "Setting port: " << args[0] << endl;
 			mPort = args[0];
+			setupDSP();
 			return {};
 		}
 	};
 
 	message<> host { this, "host", "Set the IP address",
 		MIN_FUNCTION{
-			cout << "SETTING HOST: " << args[0] << endl;
+			cout << "Setting host: " << args[0] << endl;
 			mIP = args[0];
+			setupDSP();
 			return {};
 		}
 	};
 
-	message<> chan { this, "chan", "Set the number of channels",
+	message<> chan { this, "channels", "Set the number of channels",
 		MIN_FUNCTION{
-			cout << "SETTING CHANNELS: " << args[0] << endl;
+			cout << "Setting number of channels: " << args[0] << endl;
 			mChannelCount = args[0];
+			setupDSP();
 			return {};
 		}
 	};
 
 	message<> stream { this, "stream", "Set the stream name",
 		MIN_FUNCTION{
-			cout << "SETTING STREAM NAME: "<<args[0] <<endl;
-			mStream = args[0];
+			cout << "Setting stream name: "<<args[0] <<endl;
+			mStreamName = args[0];
+			setupDSP();
 			return {};
 		}
 
 	};
 
-	// post to max window == but only when the class is loaded the first time
+	// Post to max window, but only when the class is loaded the first time
 	message<> maxclass_setup{this, "maxclass_setup",
 		MIN_FUNCTION{
 			return {};
@@ -90,31 +106,36 @@ public:
 	};
 
 private:
-	int  startSocket();
-	int  stopSocket();
+	void start();
+	void stop();
 	void setupDSP();
-    void sendPacket(long framecount);
+    void sendPacket();
 
 private:
-	number mSampleRateFormat = 0;
-	vector <char> mVbanBuffer = {};
-	number mChannelCount = 2;
-	number mChannelSize = 512;
+	number mSampleRateFormat = 0; // Index to VBanSRList, sample rates supported by VBAN
+	vector<char> mVbanBuffer = { }; // Data containing the full VBAN packet including the header
+	int mChannelCount = 2; // Number of channels of audio being sent
+	int mChannelSize = 512; // Size in bytes of one channel of audio in the VBAN packet
 
-	int mPacketWritePos = VBAN_HEADER_SIZE;
-	number mFrameCounter = 0;
-	bool mSampleRateFixed = false;
-	int mConnected = 0;
+	int mPacketWritePos = VBAN_HEADER_SIZE; // Write position in the mVbanBuffer of incoming audio data.
+	int mPacketCounter = 0; // Number of packets sent
 	int mSockfd = -1;
-	number mDataBufferSize = 0;
-	struct sockaddr_in *mServerAddr = nullptr;
+	int mDataBufferSize = 0;
+	int mPacketChannelSize = 0;
+	int mPacketSize = 0;
+	struct sockaddr_in mServerAddr;
 	VBanHeader *mPacketHeader = nullptr;
-	bool mIsRecieving = false;
+	bool mIsRunning = false;
 	symbol mIP = DESIRED_ADDRESS;
 	int mPort = DESIRED_PORT;
-	symbol mStream = "vbandemo0";
+	symbol mStreamName = "vbandemo0";
 	number mBundlesSent = 0;
 	std::vector<std::unique_ptr<inlet<>>> mInlets;
+
+	// ASIO
+//	asio::io_context 			mIOContext;
+//	asio::ip::udp::endpoint 	mRemoteEndpoint;
+//	asio::ip::udp::socket       mSocket{ mIOContext };
 };
 
 
