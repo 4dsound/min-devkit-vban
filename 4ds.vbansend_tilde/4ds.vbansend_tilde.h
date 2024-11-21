@@ -18,7 +18,7 @@
 
 #define DESIRED_ADDRESS "127.0.0.1"
 #define DESIRED_PORT 13251
-#define VERSION "0.02"
+#define VERSION "0.05"
 #define IS_LOGGING 0
 
 using namespace c74::min;

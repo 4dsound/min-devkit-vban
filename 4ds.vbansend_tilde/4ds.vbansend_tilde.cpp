@@ -41,7 +41,7 @@ void VbanSender::start()
 
 	// if total buffersize exceeds max data size, resize packet channel size to fit max data size
 	if (mPacketChannelSize * mChannelCount > VBAN_DATA_MAX_SIZE)
-		mPacketChannelSize = (VBAN_DATA_MAX_SIZE / (mChannelCount * 2)) * 2;
+		mPacketChannelSize = int(VBAN_DATA_MAX_SIZE / mChannelCount);
 
 	// compute the buffer size of all channels together
 	mAudioBufferSize = mPacketChannelSize * mChannelCount;
@@ -109,7 +109,7 @@ void VbanSender::setupDSP()
 void VbanSender::sendPacket()
 {
 	mPacketHeader->nuFrame = mPacketCounter;
-	assert(mPacketWritePos <= VBAN_DATA_MAX_SIZE);
+	assert(mPacketWritePos <= mPacketSize);
 	// Send the message according to the number of frames written
 	// wait for destination socket to be ready
 	ssize_t sent_len = sendto(mSockfd, mVbanBuffer.data(), mPacketWritePos, 0, (struct sockaddr *)&mServerAddr, sizeof(sockaddr));
@@ -129,7 +129,6 @@ void VbanSender::operator()(audio_bundle input, audio_bundle output)
 	if (!mIsRunning)
 		return;
 
-	int packet_size = mAudioBufferSize + VBAN_HEADER_SIZE;
 	for (auto i = 0; i < input.frame_count(); ++i)
 	{
 		for (auto channel = 0; channel < mChannelCount; ++channel)
@@ -145,9 +144,9 @@ void VbanSender::operator()(audio_bundle input, audio_bundle output)
 
 			mPacketWritePos += 2;
 		}
+		if (mPacketWritePos >= mPacketSize)
+			sendPacket();
 	}
-	if (mPacketWritePos >= packet_size)
-		sendPacket();
 }
 
 MIN_EXTERNAL(VbanSender);
