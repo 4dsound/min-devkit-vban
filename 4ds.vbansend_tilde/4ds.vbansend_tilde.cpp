@@ -44,17 +44,17 @@ void VbanSender::start()
 		mPacketChannelSize = (VBAN_DATA_MAX_SIZE / (mChannelCount * 2)) * 2;
 
 	// compute the buffer size of all channels together
-	int total_buffer_size = mPacketChannelSize * mChannelCount;
+	mAudioBufferSize = mPacketChannelSize * mChannelCount;
+
+	// set packet size
+	mPacketSize = mAudioBufferSize + VBAN_HEADER_SIZE;
 
 	// resize the packet data to have the correct size
-	mVbanBuffer.resize(VBAN_HEADER_SIZE + total_buffer_size);
+	mVbanBuffer.resize(mPacketSize);
 
 	// Reset packet counter and buffer write position
 	mPacketCounter = 0;
 	mPacketWritePos = VBAN_HEADER_SIZE;
-
-	// set packet size
-	mPacketSize = mPacketChannelSize * mChannelCount + VBAN_HEADER_SIZE;
 
 	// Determine samplerate
 	for (int i = 0; i < VBAN_SR_MAXNUMBER; i++)
@@ -112,8 +112,7 @@ void VbanSender::sendPacket()
 	assert(mPacketWritePos <= VBAN_DATA_MAX_SIZE);
 	// Send the message according to the number of frames written
 	// wait for destination socket to be ready
-	ssize_t sent_len = sendto(mSockfd, mVbanBuffer.data(), mPacketWritePos, 0, (struct sockaddr *)&mServerAddr,
-							  sizeof(sockaddr));
+	ssize_t sent_len = sendto(mSockfd, mVbanBuffer.data(), mPacketWritePos, 0, (struct sockaddr *)&mServerAddr, sizeof(sockaddr));
 	if (sent_len < 0)
 	{
 		cout << "Error sending message" << endl;
@@ -121,7 +120,7 @@ void VbanSender::sendPacket()
 	}
 
 	mPacketWritePos = VBAN_HEADER_SIZE;
-	mPacketCounter += 1;
+	mPacketCounter++;
 }
 
 
@@ -130,14 +129,12 @@ void VbanSender::operator()(audio_bundle input, audio_bundle output)
 	if (!mIsRunning)
 		return;
 
-	int packet_size = mDataBufferSize + VBAN_HEADER_SIZE;
+	int packet_size = mAudioBufferSize + VBAN_HEADER_SIZE;
 	for (auto i = 0; i < input.frame_count(); ++i)
 	{
 		for (auto channel = 0; channel < mChannelCount; ++channel)
 		{
-
 			float sample = input.samples(channel)[i];
-
 			short value = static_cast<short>(sample * 32768.0f);
 
 			// convert short to two bytes

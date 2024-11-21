@@ -18,6 +18,7 @@
 
 #define DESIRED_ADDRESS "127.0.0.1"
 #define DESIRED_PORT 13251
+#define VERSION "0.02"
 #define IS_LOGGING 0
 
 using namespace c74::min;
@@ -36,7 +37,7 @@ public:
 	 */
 	void operator()(audio_bundle input, audio_bundle output);
 
-	MIN_DESCRIPTION { "Send audio stream over vban. v0.01" };
+	MIN_DESCRIPTION { "Send audio stream over vban." };
 	MIN_TAGS { "VBAN, Network, UDP" };
 	MIN_AUTHOR { "4DSound" };
 
@@ -94,6 +95,7 @@ public:
 	// Post to max window, but only when the class is loaded the first time
 	message<> maxclass_setup{this, "maxclass_setup",
 		MIN_FUNCTION{
+			cout << "4ds.vbansend~ " << VERSION << endl;
 			return {};
 		}
 	};
@@ -115,13 +117,12 @@ private:
 	number mSampleRateFormat = 0; // Index to VBanSRList, sample rates supported by VBAN
 	vector<char> mVbanBuffer = { }; // Data containing the full VBAN packet including the header
 	int mChannelCount = 2; // Number of channels of audio being sent
-	int mChannelSize = 512; // Size in bytes of one channel of audio in the VBAN packet
+	int mPacketChannelSize = 0; // Size in bytes of one channel of audio in the VBAN packet
 
 	int mPacketWritePos = VBAN_HEADER_SIZE; // Write position in the mVbanBuffer of incoming audio data.
 	int mPacketCounter = 0; // Number of packets sent
 	int mSockfd = -1;
-	int mDataBufferSize = 0;
-	int mPacketChannelSize = 0;
+	int mAudioBufferSize = 0;
 	int mPacketSize = 0;
 	struct sockaddr_in mServerAddr;
 	VBanHeader *mPacketHeader = nullptr;
@@ -129,7 +130,6 @@ private:
 	symbol mIP = DESIRED_ADDRESS;
 	int mPort = DESIRED_PORT;
 	symbol mStreamName = "vbandemo0";
-	number mBundlesSent = 0;
 	std::vector<std::unique_ptr<inlet<>>> mInlets;
 
 	// ASIO
