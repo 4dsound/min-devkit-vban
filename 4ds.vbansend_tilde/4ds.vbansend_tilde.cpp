@@ -36,12 +36,8 @@ void VbanSender::start()
 		return;
 	}
 
-	// buffer size for each channel
-	mPacketChannelSize = VBAN_SAMPLES_MAX_NB * 2;
-
 	// Resize packet channel size to fit max data size
-	auto maxSizeInSamples = int(VBAN_DATA_MAX_SIZE / 2);
-	mPacketChannelSize = int(maxSizeInSamples / mChannelCount) * 2;
+	mPacketChannelSize = int(VBAN_SAMPLES_MAX_NB / mChannelCount) * 2;
 
 	// compute the buffer size of all channels together
 	mAudioBufferSize = mPacketChannelSize * mChannelCount;
