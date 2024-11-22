@@ -2,6 +2,7 @@
 
 #include "c74_min.h"
 #include "vban.h"
+#include <vbanstreamencoder.h>
 
 //#include <asio/ts/buffer.hpp>
 //#include <asio/ts/internet.hpp>
@@ -18,7 +19,7 @@
 
 #define DESIRED_ADDRESS "127.0.0.1"
 #define DESIRED_PORT 13251
-#define VERSION "0.05"
+#define VERSION "0.06"
 #define IS_LOGGING 0
 
 using namespace c74::min;
@@ -75,8 +76,14 @@ public:
 
 	message<> chan { this, "channels", "Set the number of channels",
 		MIN_FUNCTION{
-			cout << "Setting number of channels: " << args[0] << endl;
-			mChannelCount = args[0];
+			int channelCount = args[0];
+			if (channelCount > 254)
+			{
+				cerr << "Channel count " << channelCount << " not allowed, clamping to 254" << endl;
+				channelCount = 254;
+			}
+			cout << "Setting number of channels: " << channelCount << endl;
+			mEncoder.setChannelCount(channelCount);
 			setupDSP();
 			return {};
 		}
@@ -85,7 +92,7 @@ public:
 	message<> stream { this, "stream", "Set the stream name",
 		MIN_FUNCTION{
 			cout << "Setting stream name: "<<args[0] <<endl;
-			mStreamName = args[0];
+			mEncoder.setStreamName(args[0]);
 			setupDSP();
 			return {};
 		}
@@ -107,30 +114,21 @@ public:
 		}
 	};
 
+public:
+	void sendPacket(char* data, int size);
+
 private:
 	void start();
 	void stop();
 	void setupDSP();
-    void sendPacket();
 
 private:
-	number mSampleRateFormat = 0; // Index to VBanSRList, sample rates supported by VBAN
-	vector<char> mVbanBuffer = { }; // Data containing the full VBAN packet including the header
-	int mChannelCount = 2; // Number of channels of audio being sent
-	int mPacketChannelSize = 0; // Size in bytes of one channel of audio in the VBAN packet
-
-	int mPacketWritePos = VBAN_HEADER_SIZE; // Write position in the mVbanBuffer of incoming audio data.
-	int mPacketCounter = 0; // Number of packets sent
 	int mSockfd = -1;
-	int mAudioBufferSize = 0;
-	int mPacketSize = 0;
 	struct sockaddr_in mServerAddr;
-	VBanHeader *mPacketHeader = nullptr;
-	bool mIsRunning = false;
 	symbol mIP = DESIRED_ADDRESS;
 	int mPort = DESIRED_PORT;
-	symbol mStreamName = "vbandemo0";
 	std::vector<std::unique_ptr<inlet<>>> mInlets;
+	vban::VBANStreamEncoder<VbanSender> mEncoder;
 
 	// ASIO
 //	asio::io_context 			mIOContext;
