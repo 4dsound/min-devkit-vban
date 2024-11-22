@@ -25,11 +25,11 @@
 extern "C" {
 #endif
 
-#define VBAN_HEADER_SIZE            (4 + 4 + 16 + 4)
+#define VBAN_HEADER_SIZE            (4 + 4 + 16 + 4) // 28
 #define VBAN_HEADER_FOURC           'NABV'
 #define VBAN_STREAM_NAME_SIZE       16
 #define VBAN_PROTOCOL_MAX_SIZE      1464
-#define VBAN_DATA_MAX_SIZE          (VBAN_PROTOCOL_MAX_SIZE - VBAN_HEADER_SIZE)
+#define VBAN_DATA_MAX_SIZE          (VBAN_PROTOCOL_MAX_SIZE - VBAN_HEADER_SIZE) // 1436
 #define VBAN_CHANNELS_MAX_NB        256
 #define VBAN_SAMPLES_MAX_NB         256
 
