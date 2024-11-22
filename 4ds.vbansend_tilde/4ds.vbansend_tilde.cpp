@@ -3,12 +3,12 @@
 
 VbanSender::VbanSender(const atoms &args)
 {
+	// Create inlets
 	for (auto i = 0; i < 8; i++)
 	{
 		auto an_inlet = std::make_unique<inlet<>>(this, "(signal) Input signal " + std::to_string(i + 1));
 		mInlets.push_back(std::move(an_inlet));
 	}
-
 }
 
 
