@@ -46,30 +46,30 @@ public:
 
 	message<> active { this, "active", "Start or stop the sender",
 		MIN_FUNCTION{
-			if (args[0] == 1) {
-				start();
-			}
-			else if (args[0] == 0) {
-				stop();
-			}
+			if (args[0] == 1)
+				mEncoder.setActive(true);
+			else if (args[0] == 0)
+				mEncoder.setActive(false);
 			return {};
 		}
 	};
 
 	message<> port { this, "port", "Set the port number",
 		MIN_FUNCTION{
-			cout << "Setting port: " << args[0] << endl;
+			std::lock_guard<std::mutex> lock(mSocketSettingsMutex);
 			mPort = args[0];
-			setupDSP();
+			mSocketSettingsDirty.set();
+			cout << "Setting port: " << args[0] << endl;
 			return {};
 		}
 	};
 
 	message<> host { this, "host", "Set the IP address",
 		MIN_FUNCTION{
-			cout << "Setting host: " << args[0] << endl;
+			std::lock_guard<std::mutex> lock(mSocketSettingsMutex);
 			mIP = args[0];
-			setupDSP();
+			mSocketSettingsDirty.set();
+			cout << "Setting host: " << args[0] << endl;
 			return {};
 		}
 	};
@@ -77,14 +77,13 @@ public:
 	message<> chan { this, "channels", "Set the number of channels",
 		MIN_FUNCTION{
 			int channelCount = args[0];
-			if (channelCount > 254)
+			if (channelCount > VBAN_CHANNELS_MAX_NB)
 			{
-				cerr << "Channel count " << channelCount << " not allowed, clamping to 254" << endl;
-				channelCount = 254;
+				cerr << "Channel count " << channelCount << " not allowed, clamping to maximum." << endl;
+				channelCount = VBAN_CHANNELS_MAX_NB;
 			}
 			cout << "Setting number of channels: " << channelCount << endl;
 			mEncoder.setChannelCount(channelCount);
-			setupDSP();
 			return {};
 		}
 	};
@@ -93,7 +92,6 @@ public:
 		MIN_FUNCTION{
 			cout << "Setting stream name: "<<args[0] <<endl;
 			mEncoder.setStreamName(args[0]);
-			setupDSP();
 			return {};
 		}
 
@@ -118,17 +116,23 @@ public:
 	void sendPacket(char* data, int size);
 
 private:
-	void start();
-	void stop();
+	void startSocket();
+	void stopSocket();
 	void setupDSP();
 
 private:
-	int mSockfd = -1;
-	struct sockaddr_in mServerAddr;
-	symbol mIP = DESIRED_ADDRESS;
-	int mPort = DESIRED_PORT;
 	std::vector<std::unique_ptr<inlet<>>> mInlets;
 	vban::VBANStreamEncoder<VbanSender> mEncoder;
+
+	// Socket settings
+	symbol mIP = DESIRED_ADDRESS;
+	int mPort = DESIRED_PORT;
+	std::mutex mSocketSettingsMutex;
+	vban::DirtyFlag mSocketSettingsDirty;
+
+	// Socket
+	int mSocketDescriptor = -1;
+	struct sockaddr_in mServerAddress;
 
 	// ASIO
 //	asio::io_context 			mIOContext;
