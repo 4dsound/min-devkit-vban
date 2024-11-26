@@ -113,7 +113,7 @@ public:
 	};
 
 public:
-	void sendPacket(char* data, int size);
+	void sendPacket(const std::vector<char>& data);
 
 private:
 	void startSocket();

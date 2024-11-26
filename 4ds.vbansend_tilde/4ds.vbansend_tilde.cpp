@@ -68,11 +68,11 @@ void VbanSender::setupDSP()
 }
 
 
-void VbanSender::sendPacket(char* data, int size)
+void VbanSender::sendPacket(const std::vector<char>& data)
 {
 	// Send the message according to the number of frames written
 	// wait for destination socket to be ready
-	ssize_t sent_len = sendto(mSocketDescriptor, data, size, 0, (struct sockaddr *)&mServerAddress, sizeof(sockaddr));
+	ssize_t sent_len = sendto(mSocketDescriptor, data.data(), data.size(), 0, (struct sockaddr *)&mServerAddress, sizeof(sockaddr));
 	if (sent_len < 0)
 	{
 		cout << "Error sending message" << endl;
