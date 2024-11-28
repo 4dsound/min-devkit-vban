@@ -15,7 +15,6 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${THIRDPARTY_DIR}/cmake_find_modules)
 #############################################################
 
 find_package(asio REQUIRED)
-find_package(vban REQUIRED)
 
 include_directories( 
 	"${C74_INCLUDES}"
@@ -25,7 +24,6 @@ include_directories(
 set( SOURCE_FILES
 	${PROJECT_NAME}.h
 	${PROJECT_NAME}.cpp
-	${VBAN_SOURCES}
 )
 
 
@@ -34,6 +32,8 @@ add_library(
 	MODULE
 	${SOURCE_FILES}
 )
+
+target_link_libraries(${PROJECT_NAME} PUBLIC vban)
 
 
 include(${C74_MIN_API_DIR}/script/min-posttarget.cmake)
