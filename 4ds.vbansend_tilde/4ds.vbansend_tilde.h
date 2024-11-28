@@ -1,26 +1,16 @@
 #pragma once
 
 #include "c74_min.h"
-#include "vban.h"
-#include <vbanstreamencoder.h>
 
-//#include <asio/ts/buffer.hpp>
-//#include <asio/ts/internet.hpp>
-//#include <asio/io_service.hpp>
-//#include <asio/system_error.hpp>
+#include <vban/vban.h>
+#include <vban/vbanstreamencoder.h>
 
-#ifdef __APPLE__
-	#include <arpa/inet.h>
-	#include <sys/socket.h>
-#elif defined(_WIN32)
-	#include <winsock2.h>
-	#include <ws2tcpip.h>
-#endif
+#include <asio/ts/buffer.hpp>
+#include <asio/ts/internet.hpp>
+#include <asio/io_service.hpp>
+#include <asio/system_error.hpp>
 
-#define DESIRED_ADDRESS "127.0.0.1"
-#define DESIRED_PORT 13251
 #define VERSION "0.06"
-#define IS_LOGGING 0
 
 using namespace c74::min;
 
@@ -125,19 +115,15 @@ private:
 	vban::VBANStreamEncoder<VbanSender> mEncoder;
 
 	// Socket settings
-	symbol mIP = DESIRED_ADDRESS;
-	int mPort = DESIRED_PORT;
+	symbol mIP = "127.0.0.1";
+	int mPort = 13251;
 	std::mutex mSocketSettingsMutex;
 	vban::DirtyFlag mSocketSettingsDirty;
 
-	// Socket
-	int mSocketDescriptor = -1;
-	struct sockaddr_in mServerAddress;
-
-	// ASIO
-//	asio::io_context 			mIOContext;
-//	asio::ip::udp::endpoint 	mRemoteEndpoint;
-//	asio::ip::udp::socket       mSocket{ mIOContext };
+	// ASIO Socket
+	asio::io_context 			mIOContext;
+	asio::ip::udp::endpoint 	mRemoteEndpoint;
+	asio::ip::udp::socket       mSocket{ mIOContext };
 };
 
 

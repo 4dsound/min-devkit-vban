@@ -1,5 +1,8 @@
 #include "4ds.vbansend_tilde.h"
 
+#include <asio/ip/udp.hpp>
+#include <asio/ip/address.hpp>
+
 
 VbanSender::VbanSender(const atoms &args) : mEncoder(*this)
 {
@@ -25,28 +28,52 @@ void VbanSender::startSocket()
 {
 	std::lock_guard<std::mutex> lock(mSocketSettingsMutex);
 
-	// Open the socket
-	mSocketDescriptor = socket(AF_INET, SOCK_DGRAM, 0);
-	mServerAddress.sin_family = AF_INET;
-	mServerAddress.sin_port = htons(mPort);
-	mServerAddress.sin_addr.s_addr = inet_addr(mIP);
-	setsockopt(mSocketDescriptor, SOL_SOCKET, SO_BROADCAST, (char *) &mServerAddress, sizeof(mServerAddress));
-	if (inet_pton(AF_INET, mIP, &mServerAddress.sin_addr) <= 0)
+	// Try open socket
+	asio::error_code asio_error_code;
+	mSocket.open(asio::ip::udp::v4(), asio_error_code);
+	if (asio_error_code)
 	{
-		cout << "Invalid address" << endl;
-		close(mSocketDescriptor);
+		cout << asio_error_code.message() << endl;
 		return;
 	}
 
+	// Disable broadcast
+	mSocket.set_option(asio::socket_base::broadcast(false), asio_error_code);
+	if (asio_error_code)
+	{
+		cout << asio_error_code.message() << endl;
+		return;
+	}
+
+	// resolve ip address from endpoint
+	asio::ip::tcp::resolver resolver(mIOContext);
+	asio::ip::tcp::resolver::query query(mIP, "80");
+	asio::ip::tcp::resolver::iterator iter = resolver.resolve(query, asio_error_code);
+	asio::ip::tcp::endpoint endpoint = iter->endpoint();
+	auto address = asio::ip::address::from_string(endpoint.address().to_string(), asio_error_code);
+	if (asio_error_code)
+	{
+		cout << asio_error_code.message() << endl;
+		return;
+	}
+
+	mRemoteEndpoint = asio::ip::udp::endpoint(address, mPort);
+
 	// Log
-	cout << "Starting socket: IP: " << mIP << " port: " << ntohs(mServerAddress.sin_port) << endl;
+	cout << "Starting socket: IP: " << mIP << " port: " << mPort << endl;
 }
 
 
 void VbanSender::stopSocket()
 {
 	std::lock_guard<std::mutex> lock(mSocketSettingsMutex);
-	close(mSocketDescriptor);
+	asio::error_code asio_error_code;
+	mSocket.close();
+	if (asio_error_code)
+	{
+		cout << asio_error_code.message() << endl;
+		return;
+	}
 	cout << "Stopping socket" << endl;
 }
 
@@ -72,11 +99,12 @@ void VbanSender::sendPacket(const std::vector<char>& data)
 {
 	// Send the message according to the number of frames written
 	// wait for destination socket to be ready
-	ssize_t sent_len = sendto(mSocketDescriptor, data.data(), data.size(), 0, (struct sockaddr *)&mServerAddress, sizeof(sockaddr));
-	if (sent_len < 0)
+	asio::error_code asio_error_code;
+	mSocket.send_to(asio::buffer(&data.data()[0], data.size()), mRemoteEndpoint, 0, asio_error_code);
+	if (asio_error_code)
 	{
 		cout << "Error sending message" << endl;
-		cout << "Error: " << strerror(errno) << endl;
+		cout << "Error: " << asio_error_code.message() << endl;
 	}
 }
 
